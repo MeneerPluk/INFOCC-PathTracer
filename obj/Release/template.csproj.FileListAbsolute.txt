@@ -1,0 +1,8 @@
+D:\Github\INFOCC-PathTracer\bin\Release\template.exe.config
+D:\Github\INFOCC-PathTracer\bin\Release\template.exe
+D:\Github\INFOCC-PathTracer\bin\Release\template.pdb
+D:\Github\INFOCC-PathTracer\bin\Release\OpenTK.dll
+D:\Github\INFOCC-PathTracer\bin\Release\System.Numerics.Vectors.dll
+D:\Github\INFOCC-PathTracer\obj\Release\template.csprojResolveAssemblyReference.cache
+D:\Github\INFOCC-PathTracer\obj\Release\template.exe
+D:\Github\INFOCC-PathTracer\obj\Release\template.pdb
