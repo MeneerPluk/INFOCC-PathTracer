@@ -1,0 +1,11 @@
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Debug\template.exe.config
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Debug\template.exe
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Debug\template.pdb
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Debug\Cloo.dll
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Debug\OpenTK.dll
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Debug\System.Numerics.Vectors.dll
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Debug\Cloo.xml
+D:\robin\Documents\GitHub\INFOCC-PathTracer\obj\Debug\template.csprojResolveAssemblyReference.cache
+D:\robin\Documents\GitHub\INFOCC-PathTracer\obj\Debug\template.exe
+D:\robin\Documents\GitHub\INFOCC-PathTracer\obj\Debug\template.pdb
+D:\robin\Documents\GitHub\INFOCC-PathTracer\obj\Debug\template.g.resources

@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Diagnostics;
 using System.Numerics;
 using System.Threading.Tasks;
+using Cloo;
 
 // making vectors work in VS2013:
 // - Uninstall Nuget package manager
@@ -117,6 +119,31 @@ class Game
 		// render
 		if (false) // if (useGPU)
 		{
+            ComputePlatform platform = ComputePlatform.Platforms[gpuPlatform];
+            ComputeContext context = new ComputeContext(
+                    ComputeDeviceTypes.Gpu,
+                    new ComputeContextPropertyList(platform),
+                    null,
+                    IntPtr.Zero
+                );
+            var streamReader = new StreamReader("../../program.cl");
+            string clSource = streamReader.ReadToEnd();
+            ComputeProgram program = new ComputeProgram(context, clSource);
+            program.Build(null, null, null, IntPtr.Zero);
+            ComputeKernel kernel = program.CreateKernel("device_function");
+
+            float[] data = new float[screen.width * screen.height];
+            var flags = ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer;
+            ComputeBuffer<float> buffer = new ComputeBuffer<float>(context, flags, data);
+
+            kernel.SetMemoryArgument(0, buffer);
+            kernel.SetValueArgument(1, 3.14f);
+
+            ComputeCommandQueue queue = new ComputeCommandQueue(context, context.Devices[0], 0);
+            queue.Execute(kernel, null, new long[] { screen.width * screen.height }, null, null);
+            queue.Finish();
+
+            queue.ReadFromBuffer<float>(buffer, ref data, true, null);
 			// add your CPU + OpenCL path here
 			// mind the gpuPlatform parameter! This allows us to specify the platform on our
 			// test system.
