@@ -7,7 +7,7 @@ class RTTools
 {
 	// random number generators
 	private static Random globalRng = new Random(); 
-    private static Random rng = null;
+    [ThreadStatic] private static Random rng = null;
 	const float PI = 3.14159265359f;
 	const float BRIGHTNESS = 1.5f;
 	public static float RandomFloat() 
