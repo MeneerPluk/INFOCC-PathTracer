@@ -6,3 +6,13 @@ D:\Github\INFOCC-PathTracer\bin\Release\System.Numerics.Vectors.dll
 D:\Github\INFOCC-PathTracer\obj\Release\template.csprojResolveAssemblyReference.cache
 D:\Github\INFOCC-PathTracer\obj\Release\template.exe
 D:\Github\INFOCC-PathTracer\obj\Release\template.pdb
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Release\template.exe.config
+D:\robin\Documents\GitHub\INFOCC-PathTracer\obj\Release\template.exe
+D:\robin\Documents\GitHub\INFOCC-PathTracer\obj\Release\template.pdb
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Release\template.exe
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Release\template.pdb
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Release\Cloo.dll
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Release\OpenTK.dll
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Release\System.Numerics.Vectors.dll
+D:\robin\Documents\GitHub\INFOCC-PathTracer\bin\Release\Cloo.xml
+D:\robin\Documents\GitHub\INFOCC-PathTracer\obj\Release\template.csprojResolveAssemblyReference.cache
