@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks;
 
 // making vectors work in VS2013:
@@ -133,10 +134,11 @@ namespace Template
 
                 Parallel.For(0, screen.height, y =>
                 {
+                    Random r = RTTools.GetRNG();
                     for (int x = 0; x < screen.width; x++)
                     {
                         // generate primary ray
-                        Ray ray = camera.Generate(RTTools.GetRNG(), x, y);
+                        Ray ray = camera.Generate(r, x, y);
                         // trace path
                         int pixelIdx = x + y * screen.width;
                         accumulator[pixelIdx] += Sample(ray, 0);
