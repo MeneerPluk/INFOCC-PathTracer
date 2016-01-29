@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Cloo;
 using System.IO;
 using System.Resources;
+using OpenTK.Audio.OpenAL;
 
 // making vectors work in VS2013:
 // - Uninstall Nuget package manager
@@ -178,13 +179,17 @@ namespace Template
                 
                 //import buffers etc to GPU
                 Vector3[] data = new Vector3[screen.width * screen.height];
+                Vector3[] sphereOrigins = Scene.GetOrigins;
+                float[] sphereRadii = Scene.GetRadii;
 
                 var FlagRW = ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer;
                 var FlagR = ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer;
 
                 ComputeBuffer<int> rngBuffer = new ComputeBuffer<int>(context, FlagRW, rngSeed);
                 ComputeBuffer<Vector3> screenPixels = new ComputeBuffer<Vector3>(context, FlagRW, data);
-                ComputeBuffer<float> skyBox = new ComputeBuffer<float>(context, FlagR, scene.skybox); 
+                ComputeBuffer<float> skyBox = new ComputeBuffer<float>(context, FlagR, scene.skybox);
+                ComputeBuffer<Vector3> originBuffer = new ComputeBuffer<Vector3>(context, FlagR, sphereOrigins);
+                ComputeBuffer<float> radiusBuffer = new ComputeBuffer<float>(context, FlagR, sphereRadii);
 
                 kernel.SetValueArgument(0, camera.p1);
                 kernel.SetValueArgument(1, camera.p2);
@@ -198,6 +203,8 @@ namespace Template
                 kernel.SetMemoryArgument(9, rngBuffer);
                 kernel.SetMemoryArgument(10, screenPixels);
                 kernel.SetMemoryArgument(11, skyBox);
+                kernel.SetMemoryArgument(12, originBuffer);
+                kernel.SetMemoryArgument(13, radiusBuffer);
 
                 ComputeCommandQueue queue = new ComputeCommandQueue(context, context.Devices[0], 0);
                 long [] workSize = { screen.width * screen.height };
@@ -206,9 +213,11 @@ namespace Template
 
                 queue.ReadFromBuffer(screenPixels, ref data, true, null);
 
+                float scale = 1.0f / (float)++spp;
                 for (int i = 0; i < screen.width * screen.height; i++)
                 {
-                    screen.pixels[i] = RTTools.Vector3ToIntegerRGB(data[i]);
+                    accumulator[i] += data[i];
+                    screen.pixels[i] = RTTools.Vector3ToIntegerRGB(scale * accumulator[i]);
                 }
                 // add your CPU + OpenCL path here
                 // mind the gpuPlatform parameter! This allows us to specify the platform on our

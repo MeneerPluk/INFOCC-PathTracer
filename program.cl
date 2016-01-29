@@ -16,6 +16,29 @@ typedef struct Ray
 	bool inside;
 } Ray;
 
+typedef struct Sphere
+{
+	float3 Position;
+	float radius;
+} Sphere;
+
+float3 toFloat3(Vector3 vec)
+{
+	float3 ret;
+	ret.x = vec.X;
+	ret.y = vec.Y;
+	ret.z = vec.Z;
+	return ret;
+}
+
+Sphere GetSphere(int index, Vector3* origins, float* radius)
+{
+	Sphere s;
+	s.Position = toFloat3(origins[index]);
+	s.radius = radius[index];
+	return s;
+}
+
 int Xor(int seed)
 {
 	int t = seed ^ (seed << 11);
@@ -29,15 +52,6 @@ float Rand(__global int* rng)
 	seed = Xor(seed);
 	rng[get_global_id(0)] = seed;
 	return ((float)seed / 2147483647);
-}
-
-float3 toFloat3(Vector3 vec)
-{
-	float3 ret;
-	ret.x = vec.X;
-	ret.y = vec.Y;
-	ret.z = vec.Z;
-	return ret;
 }
 
 Vector3 toVector3(float3 f)
@@ -57,12 +71,16 @@ float3 SampleSkyBox(float3 Dir, __global float* skybox)
 	return (skybox[idx * 3 + 0], skybox[idx * 3 + 1], skybox[idx * 3 + 2]);
 }
 
-void Intersect(Ray r)
+Ray IntersectSphere
+
+Ray Intersect(Ray r)
 {
-	IntersectSphere(0, plane1, r);
-	IntersectSphere(1, plane2, r);
-	for (int i = 0; i < 6; i++) IntersectSphere(i+2, sphere[i], r);
-    IntersectSphere(8, light, r);
+	r = IntersectSphere(0, plane1, r);
+	r = IntersectSphere(1, plane2, r);
+	for (int i = 0; i < 6; i++) r = IntersectSphere(i+2, sphere[i], r);
+	r = IntersectSphere(8, light, r);
+
+	return r;
 }
 
 float3 Sample(Ray r, int depth)
@@ -70,7 +88,7 @@ float3 Sample(Ray r, int depth)
  return (0,0,0);
 }
 
-__kernel void device_function( Vector3 p1, Vector3 p2, Vector3 p3, Vector3 up, Vector3 right, Vector3 pos, float lensSize, float w, float h, __global int* seed, __global Vector3* screen, __global float* skybox)
+__kernel void device_function( Vector3 p1, Vector3 p2, Vector3 p3, Vector3 up, Vector3 right, Vector3 pos, float lensSize, float w, float h, __global int* seed, __global Vector3* screen, __global float* skybox, __global Vector3* origins, __global float* radius)
 {
 	float3 fp1 = toFloat3(p1);
 	float3 fp2 = toFloat3(p2);

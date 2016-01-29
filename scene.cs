@@ -72,6 +72,32 @@ class Scene
 			ray.t = t1;
 		}
 	}
+
+    public static Vector3[] GetOrigins
+    {
+        get
+        {
+            Vector3[] sphereSet = new Vector3[9];
+            for( int i = 0; i < 6; i++ ) sphereSet[i] = sphere[i].pos;
+            sphereSet[6] = plane1.pos;
+            sphereSet[7] = plane2.pos;
+            sphereSet[8] = light.pos;
+            return sphereSet;
+        }
+    }
+    public static float[] GetRadii
+    {
+        get
+        {
+            float[] sphereSet = new float[9];
+            for( int i = 0; i < 6; i++ ) sphereSet[i] = sphere[i].r;
+            sphereSet[6] = plane1.r;
+            sphereSet[7] = plane2.r;
+            sphereSet[8] = light.r;
+            return sphereSet;
+        }
+    }
+
 	public Material GetMaterial( int objIdx, Vector3 I )
 	{
 		Material mat = new Material();
