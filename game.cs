@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using Cloo;
+using System.IO;
 
 // making vectors work in VS2013:
 // - Uninstall Nuget package manager
@@ -117,8 +119,73 @@ namespace Template
                     ClearAccumulator();
                 }
             // render
-            if (false) // if (useGPU)
+            if (useGPU) // if (useGPU)
             {
+                ComputePlatform platform = ComputePlatform.Platforms[gpuPlatform];
+                ComputeContext context = new ComputeContext(
+                    ComputeDeviceTypes.Gpu,
+                    new ComputeContextPropertyList(platform),
+                    null,
+                    IntPtr.Zero
+                    );
+                var streamReader = new StreamReader("../../program.cl");
+                string clSource = streamReader.ReadToEnd();
+                streamReader.Close();
+
+                ComputeProgram program = new ComputeProgram(context, clSource);
+
+                //try to compile
+                try {
+                    program.Build(null, null, null, IntPtr.Zero);
+                }
+                catch
+                {
+                    Console.Write("error in kernel code:\n");
+                    Console.Write(program.GetBuildLog(context.Devices[0]) + "\n");
+                }
+                ComputeKernel kernel = program.CreateKernel("device_function");
+
+                //setup RNG
+                int[] rngSeed = new int[screen.width * screen.height];
+                Random r = RTTools.GetRNG();
+                for (int i = 0; i < rngSeed.Length; i++)
+                    rngSeed[i] = r.Next();
+                
+                //import buffers etc to GPU
+                Vector3[] data = new Vector3[screen.width * screen.height];
+
+                var FlagRW = ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer;
+                var FlagR = ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer;
+
+                ComputeBuffer<int> rngBuffer = new ComputeBuffer<int>(context, FlagRW, rngSeed);
+                ComputeBuffer<Vector3> screenPixels = new ComputeBuffer<Vector3>(context, FlagRW, data);
+                ComputeBuffer<float> skyBox = new ComputeBuffer<float>(context, FlagR, scene.skybox);
+
+
+                kernel.SetValueArgument(0, camera.p1);
+                kernel.SetValueArgument(1, camera.p2);
+                kernel.SetValueArgument(2, camera.p3);
+                kernel.SetValueArgument(3, camera.up);
+                kernel.SetValueArgument(4, camera.right);
+                kernel.SetValueArgument(5, camera.pos);
+                kernel.SetValueArgument(6, camera.lensSize);
+                kernel.SetValueArgument(7, (float)screen.width);
+                kernel.SetValueArgument(8, (float)screen.height);
+                kernel.SetMemoryArgument(9, rngBuffer);
+                kernel.SetMemoryArgument(10, screenPixels);
+                kernel.SetMemoryArgument(11, skyBox);
+
+                ComputeCommandQueue queue = new ComputeCommandQueue(context, context.Devices[0], 0);
+                long [] workSize = { screen.width * screen.height };
+                queue.Execute(kernel, null, workSize, null, null);
+                queue.Finish();
+
+                queue.ReadFromBuffer(screenPixels, ref data, true, null);
+
+                for (int i = 0; i < screen.width * screen.height; i++)
+                {
+                    screen.pixels[i] = RTTools.Vector3ToIntegerRGB(data[i]);
+                }
                 // add your CPU + OpenCL path here
                 // mind the gpuPlatform parameter! This allows us to specify the platform on our
                 // test system.

@@ -12,7 +12,7 @@ class Material
 }
 class Scene
 {
-	float [] skybox;
+	public float [] skybox;
 	const float LIGHTSIZE = 0.3f;
 	const float LIGHTSCALE = 1.0f;
 	public static Vector3 lightColor = new Vector3( 8.5f * LIGHTSCALE, 8.5f * LIGHTSCALE, 7.0f * LIGHTSCALE );

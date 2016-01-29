@@ -9,9 +9,9 @@ class Camera
 	public Vector3 target;
 	public float focalDistance;
 	public Vector3 E;
-	Vector3 p1, p2, p3, up, right;
+	public Vector3 p1, p2, p3, up, right;
 	int screenWidth, screenHeight;
-	float aspectRatio, lensSize;
+	public float aspectRatio, lensSize;
 	public Camera( int w, int h )
 	{
 		screenWidth = w;
