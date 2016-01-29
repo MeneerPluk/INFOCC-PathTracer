@@ -1,40 +1,43 @@
 Testcase;Status;Tijd;CPU;Omschrijving
-Referentie;Correct;58;15,07;100%
-CPU-versie;Correct;139;15,10;296%
-GPU-versie;Fout;15;15,00;299%
+Referentie;Correct;63;15,05;100%
+CPU-versie;Correct;184;15,05;295%
+GPU-versie;Correct;181;15,03;294%
 
 ------------------------------------
 
-1;Referentie;Correct;58;15,07;100%
+1;Referentie;Correct;63;15,05;100%
 Test 1 - Referentie
 Benchmark van ons referentieprogramma
 
 Uitvoer:
-58 15070 49,07047 4 4
+63 15047 48,79906 4 4
 
 ------------------------------------
 
-2;CPU-versie;Correct;139;15,10;296%
+2;CPU-versie;Correct;184;15,05;295%
 Test 2 - CPU-versie
 Benchmark van de multithreaded versie.
 
 Uitvoer:
-139 15102 47,25101 4 4
+184 15050 46,90273 4 4
 
-Performance-winst t.o.v. referentie: 240%
+Performance-winst t.o.v. referentie: 292%
 We verwachten op deze computer 350% tot 405%
 Indicatie aantal punten: 0 / 3
 
 ------------------------------------
 
-3;GPU-versie;Fout;15;15,00;299%
+3;GPU-versie;Correct;181;15,03;294%
 Test 3 - GPU-versie
 Benchmark van de OpenCL-versie
 
 Uitvoer:
-(leeg)
+181 15033 46,96722 4 4
 
-De afwijking van de referentie-afbeelding was te groot (rmse > 150).
+Performance-winst t.o.v. referentie: 287%
+Een goede GPU-implementatie zou 10 tot 100 keer beter moeten presteren dan CPU. Performance is in principe geen onderdeel van de beoordeling, maar kan wel duiden op andere fouten (of op het niet aanwezig zijn van een GPU-implementatie).
+Indicatie punten GPU: 0/5
+Indicatie punten heterogeen: 0 / 2 (indicatie op basis van CPU-gebruik)
 
 Microsoft Windows NT 6.2.9200.0 (x64)
 .NET version: 4.0.30319.42000

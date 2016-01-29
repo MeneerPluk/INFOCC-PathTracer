@@ -186,10 +186,11 @@ namespace Template
                 var FlagR = ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer;
 
                 ComputeBuffer<int> rngBuffer = new ComputeBuffer<int>(context, FlagRW, rngSeed);
-                ComputeBuffer<Vector3> screenPixels = new ComputeBuffer<Vector3>(context, FlagRW, data);
+                ComputeBuffer<int> screenPixels = new ComputeBuffer<int>(context, FlagRW, screen.pixels);
                 ComputeBuffer<float> skyBox = new ComputeBuffer<float>(context, FlagR, scene.skybox);
                 ComputeBuffer<Vector3> originBuffer = new ComputeBuffer<Vector3>(context, FlagR, sphereOrigins);
                 ComputeBuffer<float> radiusBuffer = new ComputeBuffer<float>(context, FlagR, sphereRadii);
+                ComputeBuffer<Vector3> accBuffer = new ComputeBuffer<Vector3>(context, FlagRW, accumulator);
 
                 kernel.SetValueArgument(0, camera.p1);
                 kernel.SetValueArgument(1, camera.p2);
@@ -205,20 +206,21 @@ namespace Template
                 kernel.SetMemoryArgument(11, skyBox);
                 kernel.SetMemoryArgument(12, originBuffer);
                 kernel.SetMemoryArgument(13, radiusBuffer);
+                kernel.SetMemoryArgument(14, accBuffer);
 
                 ComputeCommandQueue queue = new ComputeCommandQueue(context, context.Devices[0], 0);
                 long [] workSize = { screen.width * screen.height };
                 queue.Execute(kernel, null, workSize, null, null);
                 queue.Finish();
 
-                queue.ReadFromBuffer(screenPixels, ref data, true, null);
+                queue.ReadFromBuffer(screenPixels, ref screen.pixels, true, null);
 
-                float scale = 1.0f / (float)++spp;
-                for (int i = 0; i < screen.width * screen.height; i++)
-                {
-                    accumulator[i] += data[i];
-                    screen.pixels[i] = RTTools.Vector3ToIntegerRGB(scale * accumulator[i]);
-                }
+                //float scale = 1.0f / (float)++spp;
+                //for (int i = 0; i < screen.width * screen.height; i++)
+                //{
+                //    accumulator[i] += data[i];
+                //    screen.pixels[i] = RTTools.Vector3ToIntegerRGB(scale * accumulator[i]);
+                //}
                 // add your CPU + OpenCL path here
                 // mind the gpuPlatform parameter! This allows us to specify the platform on our
                 // test system.
