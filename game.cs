@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cloo;
 using System.IO;
+using System.Resources;
 
 // making vectors work in VS2013:
 // - Uninstall Nuget package manager
@@ -27,6 +28,11 @@ namespace Template
         bool useGPU = true;                     // GPU code enabled (from commandline)
         int gpuPlatform = 0;                    // OpenCL platform to use (from commandline)
         bool firstFrame = true;                 // first frame: used to start timer once
+
+        //For tiling:
+        int tileCount = 1;
+        int tileWidth;
+        int tileHeight;
                                                 // constants for rendering algorithm
         const float PI = 3.14159265359f;
         const float INVPI = 1.0f / PI;
@@ -47,6 +53,10 @@ namespace Template
             runningTime = rt;
             useGPU = gpu;
             gpuPlatform = platformIdx;
+            //Determine tile width and height
+            tileCount = GreatestDiv(screen.width, screen.height);
+            tileWidth = screen.width/tileCount;
+            tileHeight = screen.height/tileCount;
             // initialize accumulator
             accumulator = new Vector3[screen.width * screen.height];
             ClearAccumulator();
@@ -55,6 +65,21 @@ namespace Template
             // setup camera
             camera = new Camera(screen.width, screen.height);
         }
+
+        int GreatestDiv(int x, int y)
+        {
+            int remainder;
+            while (y != 0)
+            {
+                remainder = x%y;
+                x = y;
+                y = remainder;
+            }
+
+            return x;
+        }
+
+
         // sample: samples a single path up to a maximum depth
         private Vector3 Sample(Ray ray, int depth)
         {
@@ -159,8 +184,7 @@ namespace Template
 
                 ComputeBuffer<int> rngBuffer = new ComputeBuffer<int>(context, FlagRW, rngSeed);
                 ComputeBuffer<Vector3> screenPixels = new ComputeBuffer<Vector3>(context, FlagRW, data);
-                ComputeBuffer<float> skyBox = new ComputeBuffer<float>(context, FlagR, scene.skybox);
-
+                ComputeBuffer<float> skyBox = new ComputeBuffer<float>(context, FlagR, scene.skybox); 
 
                 kernel.SetValueArgument(0, camera.p1);
                 kernel.SetValueArgument(1, camera.p2);
@@ -199,20 +223,38 @@ namespace Template
                 // this is your CPU only path
                 float scale = 1.0f / (float)++spp;
 
-                Parallel.For(0, screen.height, y =>
+                Parallel.For(0, tileCount*tileCount, t =>
                 {
-                    Random r = RTTools.GetRNG();
-                    for (int x = 0; x < screen.width; x++)
-                    {
-                        // generate primary ray
-                        Ray ray = camera.Generate(r, x, y);
-                        // trace path
-                        int pixelIdx = x + y * screen.width;
-                        accumulator[pixelIdx] += Sample(ray, 0);
-                        // plot final color
-                        screen.pixels[pixelIdx] = RTTools.Vector3ToIntegerRGB(scale * accumulator[pixelIdx]);
-                    }
+                    for (int y = 0; y < tileHeight; y++)
+                        for (int x = 0; x < tileWidth; x++)
+                        {
+                            int screenY = y + (t/tileCount) * tileHeight;
+                            int screenX = x + (t%tileCount) * tileWidth;
+                            
+                            // generate primary ray
+                            Ray ray = camera.Generate(RTTools.GetRNG(), screenX, screenY);
+                            // trace path
+                            int pixelIdx = screenX + screenY * screen.width;
+                            accumulator[pixelIdx] += Sample(ray, 0);
+                            // plot final color
+                            screen.pixels[pixelIdx] = RTTools.Vector3ToIntegerRGB(scale * accumulator[pixelIdx]);
+                        }
                 });
+
+                //Parallel.For(0, screen.height, y =>
+                //{
+                //    Random r = RTTools.GetRNG();
+                //    for (int x = 0; x < screen.width; x++)
+                //    {
+                //        // generate primary ray
+                //        Ray ray = camera.Generate(r, x, y);
+                //        // trace path
+                //        int pixelIdx = x + y * screen.width;
+                //        accumulator[pixelIdx] += Sample(ray, 0);
+                //        // plot final color
+                //        screen.pixels[pixelIdx] = RTTools.Vector3ToIntegerRGB(scale * accumulator[pixelIdx]);
+                //    }
+                //});
             }
             // stop and report when max render time elapsed
             int elapsedSeconds = (int)(timer.ElapsedMilliseconds / 1000);

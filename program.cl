@@ -12,6 +12,8 @@ typedef struct Ray
 	float3 Origin;
 	float3 Direction;
 	float distance;
+	int objIdx;
+	bool inside;
 } Ray;
 
 int Xor(int seed)
@@ -51,8 +53,16 @@ float3 SampleSkyBox(float3 Dir, __global float* skybox)
 {
 	int u = (int)(2500.0f * 0.5f * (1.0f + atan2(Dir.x, -Dir.z) * INVPI));
 	int v = (int)(1250.0f * acos(Dir.y) * INVPI);
-	int idx = u + v + 2500;
-	return (skybox[idx * 3 + 0], skybox[idx * 3 + 1], skybox[idx * 3 + 2] );
+	int idx = u + (v * 2500);
+	return (skybox[idx * 3 + 0], skybox[idx * 3 + 1], skybox[idx * 3 + 2]);
+}
+
+void Intersect(Ray r)
+{
+	IntersectSphere(0, plane1, r);
+	IntersectSphere(1, plane2, r);
+	for (int i = 0; i < 6; i++) IntersectSphere(i+2, sphere[i], r);
+    IntersectSphere(8, light, r);
 }
 
 float3 Sample(Ray r, int depth)
@@ -84,6 +94,6 @@ __kernel void device_function( Vector3 p1, Vector3 p2, Vector3 p3, Vector3 up, V
 	float3 P = fpos + lensSize * (r2 * fright + r3 * fup);
 	float3 D = normalize(T - P);
 
-	float3 skyboxsample = SampleSkyBox(D, skybox);
+	float3 skyboxsample = 1.0f * SampleSkyBox(D, skybox);
 	screen[get_global_id(0)] = toVector3(skyboxsample);
 }
