@@ -31,9 +31,9 @@ namespace Template
         bool firstFrame = true;                 // first frame: used to start timer once
 
         //For tiling:
-        int tileCount = 1;
-        int tileWidth;
-        int tileHeight;
+        int tileCount = 1;                      //TileCount is the amount of tiles in one row or column. It used to be the total amount of tiles,
+        int tileWidth;                          //but we had to calculate the square root of that more often than the power of 2 of this.
+        int tileHeight;                         //Less calculations is more optimization!
 
         //OpenCL variables
         ComputeKernel kernel;
@@ -141,8 +141,9 @@ namespace Template
             kernel.SetMemoryArgument(14, accBuffer);
 
             queue = new ComputeCommandQueue(context, context.Devices[0], 0);
-            long[] tempWorkSize = { screen.width * screen.height }; //Somehow, doing this directly produces a build error.
-            workSize = tempWorkSize;
+
+            long[] tempWorkSize = { screen.width * screen.height };             //For some reason, doing this directly produces a build error.
+            workSize = tempWorkSize;                                            //Luckily, this works.
         }
 
         int GreatestDiv(int x, int y)
@@ -154,7 +155,6 @@ namespace Template
                 x = y;
                 y = remainder;
             }
-
             return x;
         }
 
@@ -221,63 +221,44 @@ namespace Template
                 {
                     // camera moved; restart
                     ClearAccumulator();
+                    queue.WriteToBuffer(accumulator, accBuffer, true, null);
 
+                    //Update camera in the OpenCL kernel.
                     kernel.SetValueArgument(0, camera.p1);
                     kernel.SetValueArgument(1, camera.p2);
                     kernel.SetValueArgument(2, camera.p3);
                     kernel.SetValueArgument(3, camera.up);
                     kernel.SetValueArgument(4, camera.right);
                     kernel.SetValueArgument(5, camera.pos);
-
-                    queue.WriteToBuffer(accumulator, accBuffer, true, null);
                 }
             // render
             if (useGPU) // if (useGPU)
             {
-                var FlagRW = ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer;
-                var FlagR = ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer;
-
-                //Vector3[] sphereOrigins = Scene.GetOrigins;
-                //float[] sphereRadii = Scene.GetRadii;
-
-                //rngBuffer = new ComputeBuffer<int>(context, FlagRW, rngSeed);
-                //screenPixels = new ComputeBuffer<int>(context, FlagRW, screen.pixels);
-                //originBuffer = new ComputeBuffer<Vector3>(context, FlagR, sphereOrigins);
-                //radiusBuffer = new ComputeBuffer<float>(context, FlagR, sphereRadii);
-                
-                //kernel.SetMemoryArgument(9, rngBuffer);
-                //kernel.SetMemoryArgument(10, screenPixels);
-                //kernel.SetMemoryArgument(12, originBuffer);
-                //kernel.SetMemoryArgument(13, radiusBuffer);
-                
-
+                //The only value really necessary to pass on to the GPU every step is the scale.
                 float scale = 1.0f / (float)++spp;
                 kernel.SetValueArgument(15, scale);
 
                 queue.Execute(kernel, null, workSize, null, null);
                 queue.Finish();
 
+                //Read the result onto the screen.
                 queue.ReadFromBuffer(screenPixels, ref screen.pixels, true, null);
-                //queue.ReadFromBuffer(accBuffer, ref accumulator, true, null);
-
-                // add your CPU + OpenCL path here
-                // mind the gpuPlatform parameter! This allows us to specify the platform on our
-                // test system.
-                // note: it is possible that the automated test tool provides you with a different
-                // platform number than required by your hardware. In that case, you can hardcode
-                // the platform during testing (ignoring gpuPlatform); do not forget to put back
-                // gpuPlatform before submitting!
             }
             else
             {
-                // this is your CPU only path
                 float scale = 1.0f / (float)++spp;
 
+                //Since the tiles guarantee a certain amount of data locality,
+                //we can easily use a Parallel.For over all of them.
                 Parallel.For(0, tileCount*tileCount, t =>
                 {
                     for (int y = 0; y < tileHeight; y++)
                         for (int x = 0; x < tileWidth; x++)
                         {
+                            //We only have to translate the X and Y to the right spot on the screen...
+                            //We tried implementing a morton curve, but we couldn't make a morton algorithm
+                            //which was actually faster than this. We could possibly implement a lookup table,
+                            //filled on initialization, but since this code works great, that's not a priority.
                             int screenY = y + (t/tileCount) * tileHeight;
                             int screenX = x + (t%tileCount) * tileWidth;
                             
@@ -290,21 +271,6 @@ namespace Template
                             screen.pixels[pixelIdx] = RTTools.Vector3ToIntegerRGB(scale * accumulator[pixelIdx]);
                         }
                 });
-
-                //Parallel.For(0, screen.height, y =>
-                //{
-                //    Random r = RTTools.GetRNG();
-                //    for (int x = 0; x < screen.width; x++)
-                //    {
-                //        // generate primary ray
-                //        Ray ray = camera.Generate(r, x, y);
-                //        // trace path
-                //        int pixelIdx = x + y * screen.width;
-                //        accumulator[pixelIdx] += Sample(ray, 0);
-                //        // plot final color
-                //        screen.pixels[pixelIdx] = RTTools.Vector3ToIntegerRGB(scale * accumulator[pixelIdx]);
-                //    }
-                //});
             }
             // stop and report when max render time elapsed
             int elapsedSeconds = (int)(timer.ElapsedMilliseconds / 1000);
