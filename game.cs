@@ -221,13 +221,15 @@ namespace Template
                 {
                     // camera moved; restart
                     ClearAccumulator();
+
                     kernel.SetValueArgument(0, camera.p1);
                     kernel.SetValueArgument(1, camera.p2);
                     kernel.SetValueArgument(2, camera.p3);
                     kernel.SetValueArgument(3, camera.up);
                     kernel.SetValueArgument(4, camera.right);
                     kernel.SetValueArgument(5, camera.pos);
-                    kernel.SetMemoryArgument(14, accBuffer);
+
+                    queue.WriteToBuffer(accumulator, accBuffer, true, null);
                 }
             // render
             if (useGPU) // if (useGPU)
@@ -242,8 +244,6 @@ namespace Template
                 //screenPixels = new ComputeBuffer<int>(context, FlagRW, screen.pixels);
                 //originBuffer = new ComputeBuffer<Vector3>(context, FlagR, sphereOrigins);
                 //radiusBuffer = new ComputeBuffer<float>(context, FlagR, sphereRadii);
-                accBuffer = new ComputeBuffer<Vector3>(context, FlagRW, accumulator);
-
                 
                 //kernel.SetMemoryArgument(9, rngBuffer);
                 //kernel.SetMemoryArgument(10, screenPixels);
