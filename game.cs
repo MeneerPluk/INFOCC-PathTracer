@@ -34,7 +34,18 @@ namespace Template
         int tileCount = 1;
         int tileWidth;
         int tileHeight;
-                                                // constants for rendering algorithm
+
+        //OpenCL variables
+        ComputeKernel kernel;
+        ComputeContext context;
+        ComputeCommandQueue queue;
+        ComputeBuffer<int> rngBuffer, screenPixels;
+        ComputeBuffer<float> skyBox, radiusBuffer;
+        ComputeBuffer<Vector3> originBuffer, accBuffer;
+        int[] rngSeed;
+        long[] workSize;
+
+        // constants for rendering algorithm
         const float PI = 3.14159265359f;
         const float INVPI = 1.0f / PI;
         const float EPSILON = 0.0001f;
@@ -65,6 +76,73 @@ namespace Template
             scene = new Scene();
             // setup camera
             camera = new Camera(screen.width, screen.height);
+
+            //Init OpenCL
+            ComputePlatform platform = ComputePlatform.Platforms[gpuPlatform];
+            context = new ComputeContext(
+                ComputeDeviceTypes.Gpu,
+                new ComputeContextPropertyList(platform),
+                null,
+                IntPtr.Zero
+                );
+            var streamReader = new StreamReader("../../program.cl");
+            string clSource = streamReader.ReadToEnd();
+            streamReader.Close();
+
+            ComputeProgram program = new ComputeProgram(context, clSource);
+
+            //try to compile
+            try
+            {
+                program.Build(null, null, null, IntPtr.Zero);
+            }
+            catch
+            {
+                Console.Write("error in kernel code:\n");
+                Console.Write(program.GetBuildLog(context.Devices[0]) + "\n");
+            }
+            kernel = program.CreateKernel("device_function");
+
+            //setup RNG
+            rngSeed = new int[screen.width * screen.height];
+            Random r = RTTools.GetRNG();
+            for (int i = 0; i < rngSeed.Length; i++)
+                rngSeed[i] = r.Next();
+
+            //import buffers etc to GPU
+            Vector3[] data = new Vector3[screen.width * screen.height];
+            Vector3[] sphereOrigins = Scene.GetOrigins;
+            float[] sphereRadii = Scene.GetRadii;
+
+            var FlagRW = ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer;
+            var FlagR = ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer;
+
+            rngBuffer = new ComputeBuffer<int>(context, FlagRW, rngSeed);
+            screenPixels = new ComputeBuffer<int>(context, FlagRW, screen.pixels);
+            skyBox = new ComputeBuffer<float>(context, FlagR, scene.skybox);
+            originBuffer = new ComputeBuffer<Vector3>(context, FlagR, sphereOrigins);
+            radiusBuffer = new ComputeBuffer<float>(context, FlagR, sphereRadii);
+            accBuffer = new ComputeBuffer<Vector3>(context, FlagRW, accumulator);
+
+            kernel.SetValueArgument(0, camera.p1);
+            kernel.SetValueArgument(1, camera.p2);
+            kernel.SetValueArgument(2, camera.p3);
+            kernel.SetValueArgument(3, camera.up);
+            kernel.SetValueArgument(4, camera.right);
+            kernel.SetValueArgument(5, camera.pos);
+            kernel.SetValueArgument(6, camera.lensSize);
+            kernel.SetValueArgument(7, (float)screen.width);
+            kernel.SetValueArgument(8, (float)screen.height);
+            kernel.SetMemoryArgument(9, rngBuffer);
+            kernel.SetMemoryArgument(10, screenPixels);
+            kernel.SetMemoryArgument(11, skyBox);
+            kernel.SetMemoryArgument(12, originBuffer);
+            kernel.SetMemoryArgument(13, radiusBuffer);
+            kernel.SetMemoryArgument(14, accBuffer);
+
+            queue = new ComputeCommandQueue(context, context.Devices[0], 0);
+            long[] tempWorkSize = { screen.width * screen.height }; //Somehow, doing this directly produces a build error.
+            workSize = tempWorkSize;
         }
 
         int GreatestDiv(int x, int y)
@@ -143,84 +221,45 @@ namespace Template
                 {
                     // camera moved; restart
                     ClearAccumulator();
+                    kernel.SetValueArgument(0, camera.p1);
+                    kernel.SetValueArgument(1, camera.p2);
+                    kernel.SetValueArgument(2, camera.p3);
+                    kernel.SetValueArgument(3, camera.up);
+                    kernel.SetValueArgument(4, camera.right);
+                    kernel.SetValueArgument(5, camera.pos);
+                    kernel.SetMemoryArgument(14, accBuffer);
                 }
             // render
             if (useGPU) // if (useGPU)
             {
-                ComputePlatform platform = ComputePlatform.Platforms[gpuPlatform];
-                ComputeContext context = new ComputeContext(
-                    ComputeDeviceTypes.Gpu,
-                    new ComputeContextPropertyList(platform),
-                    null,
-                    IntPtr.Zero
-                    );
-                var streamReader = new StreamReader("../../program.cl");
-                string clSource = streamReader.ReadToEnd();
-                streamReader.Close();
-
-                ComputeProgram program = new ComputeProgram(context, clSource);
-
-                //try to compile
-                try {
-                    program.Build(null, null, null, IntPtr.Zero);
-                }
-                catch
-                {
-                    Console.Write("error in kernel code:\n");
-                    Console.Write(program.GetBuildLog(context.Devices[0]) + "\n");
-                }
-                ComputeKernel kernel = program.CreateKernel("device_function");
-
-                //setup RNG
-                int[] rngSeed = new int[screen.width * screen.height];
-                Random r = RTTools.GetRNG();
-                for (int i = 0; i < rngSeed.Length; i++)
-                    rngSeed[i] = r.Next();
-                
-                //import buffers etc to GPU
-                Vector3[] data = new Vector3[screen.width * screen.height];
-                Vector3[] sphereOrigins = Scene.GetOrigins;
-                float[] sphereRadii = Scene.GetRadii;
-
                 var FlagRW = ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer;
                 var FlagR = ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer;
 
-                ComputeBuffer<int> rngBuffer = new ComputeBuffer<int>(context, FlagRW, rngSeed);
-                ComputeBuffer<int> screenPixels = new ComputeBuffer<int>(context, FlagRW, screen.pixels);
-                ComputeBuffer<float> skyBox = new ComputeBuffer<float>(context, FlagR, scene.skybox);
-                ComputeBuffer<Vector3> originBuffer = new ComputeBuffer<Vector3>(context, FlagR, sphereOrigins);
-                ComputeBuffer<float> radiusBuffer = new ComputeBuffer<float>(context, FlagR, sphereRadii);
-                ComputeBuffer<Vector3> accBuffer = new ComputeBuffer<Vector3>(context, FlagRW, accumulator);
+                //Vector3[] sphereOrigins = Scene.GetOrigins;
+                //float[] sphereRadii = Scene.GetRadii;
 
-                kernel.SetValueArgument(0, camera.p1);
-                kernel.SetValueArgument(1, camera.p2);
-                kernel.SetValueArgument(2, camera.p3);
-                kernel.SetValueArgument(3, camera.up);
-                kernel.SetValueArgument(4, camera.right);
-                kernel.SetValueArgument(5, camera.pos);
-                kernel.SetValueArgument(6, camera.lensSize);
-                kernel.SetValueArgument(7, (float)screen.width);
-                kernel.SetValueArgument(8, (float)screen.height);
-                kernel.SetMemoryArgument(9, rngBuffer);
-                kernel.SetMemoryArgument(10, screenPixels);
-                kernel.SetMemoryArgument(11, skyBox);
-                kernel.SetMemoryArgument(12, originBuffer);
-                kernel.SetMemoryArgument(13, radiusBuffer);
-                kernel.SetMemoryArgument(14, accBuffer);
+                //rngBuffer = new ComputeBuffer<int>(context, FlagRW, rngSeed);
+                //screenPixels = new ComputeBuffer<int>(context, FlagRW, screen.pixels);
+                //originBuffer = new ComputeBuffer<Vector3>(context, FlagR, sphereOrigins);
+                //radiusBuffer = new ComputeBuffer<float>(context, FlagR, sphereRadii);
+                accBuffer = new ComputeBuffer<Vector3>(context, FlagRW, accumulator);
 
-                ComputeCommandQueue queue = new ComputeCommandQueue(context, context.Devices[0], 0);
-                long [] workSize = { screen.width * screen.height };
+                
+                //kernel.SetMemoryArgument(9, rngBuffer);
+                //kernel.SetMemoryArgument(10, screenPixels);
+                //kernel.SetMemoryArgument(12, originBuffer);
+                //kernel.SetMemoryArgument(13, radiusBuffer);
+                
+
+                float scale = 1.0f / (float)++spp;
+                kernel.SetValueArgument(15, scale);
+
                 queue.Execute(kernel, null, workSize, null, null);
                 queue.Finish();
 
                 queue.ReadFromBuffer(screenPixels, ref screen.pixels, true, null);
+                //queue.ReadFromBuffer(accBuffer, ref accumulator, true, null);
 
-                //float scale = 1.0f / (float)++spp;
-                //for (int i = 0; i < screen.width * screen.height; i++)
-                //{
-                //    accumulator[i] += data[i];
-                //    screen.pixels[i] = RTTools.Vector3ToIntegerRGB(scale * accumulator[i]);
-                //}
                 // add your CPU + OpenCL path here
                 // mind the gpuPlatform parameter! This allows us to specify the platform on our
                 // test system.

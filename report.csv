@@ -1,43 +1,53 @@
 Testcase;Status;Tijd;CPU;Omschrijving
-Referentie;Correct;63;15,05;100%
-CPU-versie;Correct;184;15,05;295%
-GPU-versie;Correct;181;15,03;294%
+Referentie;Correct;57;15,24;100%
+CPU-versie;Correct;137;15,05;284%
+GPU-versie;Error;15;15,00;100%
 
 ------------------------------------
 
-1;Referentie;Correct;63;15,05;100%
+1;Referentie;Correct;57;15,24;100%
 Test 1 - Referentie
 Benchmark van ons referentieprogramma
 
 Uitvoer:
-63 15047 48,79906 4 4
+57 15239 49,15075 4 4
 
 ------------------------------------
 
-2;CPU-versie;Correct;184;15,05;295%
+2;CPU-versie;Correct;137;15,05;284%
 Test 2 - CPU-versie
 Benchmark van de multithreaded versie.
 
 Uitvoer:
-184 15050 46,90273 4 4
+137 15050 47,22915 4 4
 
-Performance-winst t.o.v. referentie: 292%
+Performance-winst t.o.v. referentie: 240%
 We verwachten op deze computer 350% tot 405%
 Indicatie aantal punten: 0 / 3
 
 ------------------------------------
 
-3;GPU-versie;Correct;181;15,03;294%
+3;GPU-versie;Error;15;15,00;100%
 Test 3 - GPU-versie
 Benchmark van de OpenCL-versie
 
 Uitvoer:
-181 15033 46,96722 4 4
+(leeg)
 
-Performance-winst t.o.v. referentie: 287%
-Een goede GPU-implementatie zou 10 tot 100 keer beter moeten presteren dan CPU. Performance is in principe geen onderdeel van de beoordeling, maar kan wel duiden op andere fouten (of op het niet aanwezig zijn van een GPU-implementatie).
-Indicatie punten GPU: 0/5
-Indicatie punten heterogeen: 0 / 2 (indicatie op basis van CPU-gebruik)
+Foutmelding:
+Onverwerkte uitzondering: Cloo.OutOfResourcesComputeException: OpenCL error code detected: OutOfResources.
+   bij Cloo.ComputeException.ThrowOnError(ComputeErrorCode errorCode)
+   bij Cloo.ComputeCommandQueue.Read[T](ComputeBufferBase`1 source, Boolean blocking, Int64 offset, Int64 region, IntPtr destination, ICollection`1 events)
+   bij Cloo.ComputeCommandQueue.ReadFromBuffer[T](ComputeBufferBase`1 source, T[]& destination, Boolean blocking, Int64 sourceOffset, Int64 destinationOffset, Int64 region, IList`1 events)
+   bij Cloo.ComputeCommandQueue.ReadFromBuffer[T](ComputeBufferBase`1 source, T[]& destination, Boolean blocking, IList`1 events)
+   bij Template.Game.Tick() in D:\Github\INFOCC-PathTracer\game.cs:regel 265
+   bij Template.OpenTKApp.OnRenderFrame(FrameEventArgs e) in D:\Github\INFOCC-PathTracer\template.cs:regel 58
+   bij OpenTK.GameWindow.RaiseRenderFrame(Double elapsed, Double& timestamp)
+   bij OpenTK.GameWindow.DispatchUpdateAndRenderFrame(Object sender, EventArgs e)
+   bij OpenTK.GameWindow.Run(Double updates_per_second, Double frames_per_second)
+   bij Template.OpenTKApp.Main(String[] args) in D:\Github\INFOCC-PathTracer\template.cs:regel 99
+
+De afwijking van de referentie-afbeelding was te groot (rmse > 150).
 
 Microsoft Windows NT 6.2.9200.0 (x64)
 .NET version: 4.0.30319.42000

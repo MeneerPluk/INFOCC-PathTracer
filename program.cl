@@ -67,11 +67,11 @@ float Rand(__global int* rng)
 	return ((float)seed / 2147483647);
 }
 
-int Vector3ToIntRGB(Vector3 color)
+int Float3ToIntRGB(float3 color)
 {
-	int r = min(255, (int) (256.0f * 1.5f * sqrt(color.X)));
-	int g = min(255, (int) (256.0f * 1.5f * sqrt(color.Y)));
-	int b = min(255, (int) (256.0f * 1.5f * sqrt(color.Z)));
+	int r = min(255, (int) (256.0f * 1.5f * sqrt(color.x)));
+	int g = min(255, (int) (256.0f * 1.5f * sqrt(color.y)));
+	int b = min(255, (int) (256.0f * 1.5f * sqrt(color.z)));
 	return (r << 16) + (g << 8) + b;
 }
 
@@ -124,12 +124,36 @@ Material GetMaterial(int objIdx, float3 I)
 		int tx = ((int)(I.x * 3.0f + 1000) + (int)(I.z * 3.0f + 1000)) & 1;
 		mat.Diffuse = (1,1,1) * ((tx == 1) ? 1.0f : 0.2f);
 	}
-	if ((objIdx == 1) || (objIdx > 8)) { mat.refl = 0; mat.refr = 0; mat.emissive = false; mat.Diffuse = (1,1,1); }
-	if (objIdx == 2) { mat.refl = 0.8f; mat.refr = 0; mat.emissive = false; mat.Diffuse = ( 1, 0.2f, 0.2f ); }
-	if (objIdx == 3) { mat.refl = 0; mat.refr = 1; mat.emissive = false; mat.Diffuse = ( 0.9f, 1.0f, 0.9f ); }
-	if (objIdx == 4) { mat.refl = 0.8f; mat.refr = 0; mat.emissive = false; mat.Diffuse = ( 0.2f, 0.2f, 1 ); }
-	if ((objIdx > 4) && (objIdx < 8)) { mat.refl = 0; mat.refr = 0; mat.emissive = false; mat.Diffuse = (1,1,1); }
-	if (objIdx == 8) { mat.refl = 0; mat.refr = 0; mat.emissive = true; mat.Diffuse = (8.5f, 8.5f, 7.0f); }
+	if ((objIdx == 1) || (objIdx > 8)) { mat.refl = 0; mat.refr = 0; mat.emissive = false;
+		mat.Diffuse.x = 1;
+		mat.Diffuse.y = 1;
+		mat.Diffuse.z = 1;
+		}
+	if (objIdx == 2) { mat.refl = 0.8f; mat.refr = 0; mat.emissive = false;
+		mat.Diffuse.x = 1;
+		mat.Diffuse.y = 0.2f;
+		mat.Diffuse.z = 0.2f;
+		}
+	if (objIdx == 3) { mat.refl = 0; mat.refr = 1; mat.emissive = false;
+		mat.Diffuse.x = 0.9f;
+		mat.Diffuse.y = 1.0f;
+		mat.Diffuse.z = 0.9f;
+		}
+	if (objIdx == 4) { mat.refl = 0.8f; mat.refr = 0; mat.emissive = false;
+		mat.Diffuse.x = 0.2f;
+		mat.Diffuse.y = 0.2f;
+		mat.Diffuse.z = 1.0f;
+		}
+	if ((objIdx > 4) && (objIdx < 8)) { mat.refl = 0; mat.refr = 0; mat.emissive = false;
+		mat.Diffuse.x = 1.0f;
+		mat.Diffuse.y = 1.0f;
+		mat.Diffuse.z = 1.0f;
+		}
+	if (objIdx == 8) { mat.refl = 0; mat.refr = 0; mat.emissive = true;
+		mat.Diffuse.x = 8.5f;
+		mat.Diffuse.y = 8.5f;
+		mat.Diffuse.z = 7.0f;
+		}
 
 	return mat;
 }
@@ -204,15 +228,17 @@ Ray Intersect(Ray r, __global Vector3* origins, __global float* radius)
 float3 Sample(Ray r, __global Vector3* origins, __global float* radius, __global float* skybox, __global int* seed)
 {
     int depth = 0;
-	r.DiffColor = (1, 1, 1);
-	while(depth < MAXDEPTH)
+	float3 currColor = (1.0f, 1.0f, 1.0f);
+	while(true)
 	{
 		r = Intersect(r, origins, radius);
-		if (r.objIdx == -1) return SampleSkyBox(r.Direction, skybox);
+		if (r.objIdx == -1) return currColor * SampleSkyBox(r.Direction, skybox);
 
 		float3 I = r.Origin + r.distance * r.Direction;
 		Material m = GetMaterial(r.objIdx, I);
-		if(m.emissive){ return m.Diffuse;}
+		if(m.emissive){ return m.Diffuse * currColor; }
+
+		if (depth >= MAXDEPTH) return (0,0,0);
 	
 		float r0 = Rand(seed);
 		float3 refr = (0, 0, 0);
@@ -220,11 +246,12 @@ float3 Sample(Ray r, __global Vector3* origins, __global float* radius, __global
 		{
 			refr = Refract(r, seed);
 			Ray exray;
+			exray.objIdx = -1;
 			exray.Origin = I + refr * EPSILON;
 			exray.Direction = refr;
 			exray.distance = 1e34f;
 			exray.inside = (dot(r.Normal, refr) < 0);
-			exray.DiffColor = m.Diffuse * r.DiffColor;
+			currColor = m.Diffuse * currColor;
 			r = exray;
 			depth++;
 		}
@@ -232,10 +259,11 @@ float3 Sample(Ray r, __global Vector3* origins, __global float* radius, __global
 		{
 			refr = normalize(r.Direction - 2.0 * dot(r.Normal, r.Direction) * r.Normal);
 			Ray exray;
+			exray.objIdx = -1;
 			exray.Origin = I + refr * EPSILON;
 			exray.Direction = refr;
 			exray.distance = 1e34f;
-			exray.DiffColor = m.Diffuse * r.DiffColor;
+			currColor = m.Diffuse * currColor;
 			r = exray;
 			depth++;
 		}
@@ -243,10 +271,11 @@ float3 Sample(Ray r, __global Vector3* origins, __global float* radius, __global
 		{
 			refr = DiffuseReflection(seed, r.Normal);
 			Ray exray;
+			exray.objIdx = -1;
 			exray.Origin = I + refr * EPSILON;
 			exray.Direction = refr;
 			exray.distance = 1e34f;
-			exray.DiffColor = dot(refr, r.Normal) * m.Diffuse * r.DiffColor;
+			currColor = dot(refr, r.Normal) * m.Diffuse * currColor;
 			r = exray;
 			depth++;
 		}
@@ -258,7 +287,7 @@ float3 Sample(Ray r, __global Vector3* origins, __global float* radius, __global
 	return out;
 }
 
-__kernel void device_function( Vector3 p1, Vector3 p2, Vector3 p3, Vector3 up, Vector3 right, Vector3 pos, float lensSize, float w, float h, __global int* seed, __global int* screen, __global float* skybox, __global Vector3* origins, __global float* radius, __global Vector3* acc)
+__kernel void device_function( Vector3 p1, Vector3 p2, Vector3 p3, Vector3 up, Vector3 right, Vector3 pos, float lensSize, float w, float h, __global int* seed, __global int* screen, __global float* skybox, __global Vector3* origins, __global float* radius, __global Vector3* acc, float scale)
 {
 	float3 fp1 = toFloat3(p1);
 	float3 fp2 = toFloat3(p2);
@@ -268,7 +297,7 @@ __kernel void device_function( Vector3 p1, Vector3 p2, Vector3 p3, Vector3 up, V
 	float3 fpos = toFloat3(pos);
 
 	float x = floor(fmod(get_global_id(0), w));
-	float y = floor(get_global_id(0) / w);
+	float y = floor(get_global_id(0) / h);
 	
 	float r0 = Rand(seed);
 	float r1 = Rand(seed);
@@ -290,5 +319,5 @@ __kernel void device_function( Vector3 p1, Vector3 p2, Vector3 p3, Vector3 up, V
 
 	float3 sample = Sample(r, origins, radius, skybox, seed);
 	acc[get_global_id(0)] = AddFloat3ToVector3(acc[get_global_id(0)], sample);
-	screen[get_global_id(0)] = Vector3ToIntRGB(acc[get_global_id(0)]);
+	screen[get_global_id(0)] = Float3ToIntRGB(toFloat3(acc[get_global_id(0)]) * scale);
 }
