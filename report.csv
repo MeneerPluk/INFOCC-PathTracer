@@ -1,40 +1,40 @@
 Testcase;Status;Tijd;CPU;Omschrijving
-Referentie;Correct;60;15,16;100%
-CPU-versie;Correct;167;15,09;290%
-GPU-versie;Correct;519;15,03;100%
+Referentie;Correct;65;15,08;101%
+CPU-versie;Correct;208;15,06;324%
+GPU-versie;Correct;896;15,00;100%
 
 ------------------------------------
 
-1;Referentie;Correct;60;15,16;100%
+1;Referentie;Correct;65;15,08;101%
 Test 1 - Referentie
 Benchmark van ons referentieprogramma
 
 Uitvoer:
-60 15163 48,92453 4 4
+65 15083 48,76365 4 4
 
 ------------------------------------
 
-2;CPU-versie;Correct;167;15,09;290%
+2;CPU-versie;Correct;208;15,06;324%
 Test 2 - CPU-versie
 Benchmark van de multithreaded versie.
 
 Uitvoer:
-167 15087 46,9866 4 4
+208 15062 46,82163 4 4
 
-Performance-winst t.o.v. referentie: 278%
+Performance-winst t.o.v. referentie: 320%
 We verwachten op deze computer 350% tot 405%
 Indicatie aantal punten: 0 / 3
 
 ------------------------------------
 
-3;GPU-versie;Correct;519;15,03;100%
+3;GPU-versie;Correct;896;15,00;100%
 Test 3 - GPU-versie
 Benchmark van de OpenCL-versie
 
 Uitvoer:
-519 15030 46,29304 4 4
+896 15003 46,12586 4 4
 
-Performance-winst t.o.v. referentie: 865%
+Performance-winst t.o.v. referentie: 1378%
 Indicatie punten GPU: 5/5
 Indicatie punten heterogeen: 0 / 2 (indicatie op basis van CPU-gebruik)
 
